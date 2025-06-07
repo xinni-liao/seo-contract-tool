@@ -38,7 +38,7 @@ class PDFReport(FPDF):
         )
         self.chapter_body(body)
 
-   def add_billing_report(self, client_name, bill_start, billing_cycle_months, next_billing_date, total_downdays, adjusted_billing_date, charge_ranges, nocharge_ranges):
+    def add_billing_report(self, client_name, bill_start, billing_cycle_months, next_billing_date, total_downdays, adjusted_billing_date, charge_ranges, nocharge_ranges):
         self.add_page()
         self.chapter_title("請款延期報告")
 
