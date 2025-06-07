@@ -13,9 +13,12 @@ def format_range_zh(start, end):
     return f"{format_date_zh(start)} ～ {format_date_zh(end)}（{delta_days} 天）"
 
 class PDFReport(FPDF):
-    def header(self):
+    def __init__(self):
+        super().__init__()
         font_path = os.path.join(os.path.dirname(__file__), "NotoSansTC-Regular.ttf")
         self.add_font("TW", "", font_path, uni=True)
+
+    def header(self):
         self.set_font("TW", size=14)
         self.cell(0, 10, "SEO 合約計算報告", 0, 1, "C")
 
@@ -43,25 +46,23 @@ class PDFReport(FPDF):
         self.add_page()
         self.chapter_title("請款延期報告")
 
-        body = (
-            f"客戶名稱：{client_name}\n\n"
-            f"１、📅 原請款週期：{bill_start} → {next_billing_date}\n\n"
-            f"２、🔴 總共掉排名的天數：{total_downdays} 天\n\n"
-        )
+        body = f"客戶名稱：{client_name}\n\n"
+        body += f"1、📅 原請款週期：{bill_start} → {next_billing_date}\n\n"
+        body += f"2、🔴 總共掉排名的天數：{total_downdays} 天\n\n"
 
         if nocharge_ranges:
-            body += f"３、🚫 暫停收費區間：\n\n"
+            body += f"3、🚫 暫停收費區間：\n\n"
             for s, e in nocharge_ranges:
                 body += f"{s.date()} ~ {e.date()}（{(e - s).days} 天）\n"
             body += "\n"
 
         if charge_ranges:
-            body += f"４、✅ 有收費區間：\n\n"
+            body += f"4、✅ 有收費區間：\n\n"
             for s, e in charge_ranges:
                 body += f"{s.date()} ~ {e.date()}（{(e - s).days} 天）\n"
             body += "\n"
 
-        body += f"５、🟡 因此，順延後的新請款日：{adjusted_billing_date}\n"
+        body += f"5、🟡 因此，順延後的新請款日：{adjusted_billing_date}\n"
 
         self.chapter_body(body)
 
