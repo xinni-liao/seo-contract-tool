@@ -93,9 +93,9 @@ def calculate_overlap_days_and_ranges(periods, billing_range_start, billing_rang
     return total, charge_ranges, nocharge_ranges
 
 def main():
-    st.title("📈 SEO 合約掉排名與請款日調整工具")
+    st.title("📈 SEO排名請款計算工具")
 
-    st.write("這是一個行動裝置友善的工具，可計算合約到期日與順延請款日，並可匯出 PDF 報告。")
+    st.write("解放SEO合約計算的工具，邁向開心人生的小確幸！")
 
     option = st.radio("請選擇您要使用的計算功能：", ["📅 合約延展計算", "💰 請款順延計算"])
 
@@ -173,7 +173,7 @@ def main():
 
                 st.success("✅ 計算結果如下：")
                 st.write(f"📅 原請款週期：{billing_start_dt.date()} → {next_billing_date.date()}")
-                st.write(f"🔴 掉排名影響天數（在收費期間內）：{delay_days} 天")
+                st.write(f"🔴 掉排名總共天數（在收費期間內）：{delay_days} 天")
                 st.write(f"🟡 順延後的新請款日：{adjusted_billing_date.date()}")
 
                 if charge_ranges:
@@ -184,7 +184,9 @@ def main():
                     st.write("🚫 暫停收費區間：")
                     for s, e in nocharge_ranges:
                         st.write(f"- {s.date()} ~ {e.date()}（{(e - s).days} 天）")
+                st.write(f"🟡 順延後的新請款日：{adjusted_billing_date.date()}")
 
+                
                 pdf = PDFReport()
                 pdf.add_billing_report(client_name, billing_start_dt.date(), billing_cycle, next_billing_date.date(), delay_days, adjusted_billing_date.date(), charge_ranges, nocharge_ranges)
 
