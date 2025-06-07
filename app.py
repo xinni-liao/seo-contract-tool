@@ -47,22 +47,22 @@ class PDFReport(FPDF):
         self.chapter_title("請款延期報告")
 
         body = f"客戶名稱：{client_name}\n\n"
-        body += f"1、📅 原請款週期：{bill_start} → {next_billing_date}\n\n"
-        body += f"2、🔴 總共掉排名的天數：{total_downdays} 天\n\n"
+        body += f"📅 原請款週期：{bill_start} → {next_billing_date}\n\n"
+        body += f"🔴 總共掉排名的天數：{total_downdays} 天\n\n"
 
         if nocharge_ranges:
-            body += f"3、🚫 暫停收費區間：\n\n"
+            body += f"🚫 暫停收費區間：\n\n"
             for s, e in nocharge_ranges:
                 body += f"{s.date()} ~ {e.date()}（{(e - s).days} 天）\n"
             body += "\n"
 
         if charge_ranges:
-            body += f"4、✅ 有收費區間：\n\n"
+            body += f"✅ 有收費區間：\n\n"
             for s, e in charge_ranges:
                 body += f"{s.date()} ~ {e.date()}（{(e - s).days} 天）\n"
             body += "\n"
 
-        body += f"5、🟡 因此，順延後的新請款日：{adjusted_billing_date}\n"
+        body += f"🟡 因此，順延後的新請款日：{adjusted_billing_date}\n"
 
         self.chapter_body(body)
 
