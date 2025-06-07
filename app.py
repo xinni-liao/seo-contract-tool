@@ -2,14 +2,11 @@ import streamlit as st
 from datetime import datetime, timedelta
 from fpdf import FPDF
 import os
-import locale
-
-locale.setlocale(locale.LC_TIME, "zh_TW.UTF-8")
 
 st.set_page_config(page_title="SEO 合約工具", layout="centered", initial_sidebar_state="collapsed")
 
 def format_date_zh(date_obj):
-    return date_obj.strftime("%Y年%m月%d日")
+    return f"{date_obj.year}年{date_obj.month}月{date_obj.day}日"
 
 class PDFReport(FPDF):
     def header(self):
