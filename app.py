@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from fpdf import FPDF
 import os
 
-st.set_page_config(page_title="SEO 合約工具", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="SEO 請款合約計算工具", layout="centered", initial_sidebar_state="collapsed")
 
 def format_date_zh(date_obj):
     return f"{date_obj.year}年{date_obj.month}月{date_obj.day}日"
@@ -23,7 +23,7 @@ class PDFReport(FPDF):
         self.cell(0, 10, "SEO 合約計算報告", 0, 1, "C")
 
     def chapter_title(self, title):
-        self.set_font("TW", size=12)
+        self.set_font("TW", size=13)
         self.cell(0, 10, title, 0, 1)
 
     def chapter_body(self, text):
@@ -40,15 +40,15 @@ class PDFReport(FPDF):
             f"掉排名總天數：{total_downdays} 天\n"
         )
 
-        if nocharge_ranges:
-            body += f"\n🚫 暫停計費區間：\n"
-            for s, e in nocharge_ranges:
-                days = (e - s).days
-                body += f"- {s.date()} ~ {e.date()}（{days} 天）\n"
-
         if charge_ranges:
             body += f"\n✅ 有計費區間：\n"
             for s, e in charge_ranges:
+                days = (e - s).days
+                body += f"- {s.date()} ~ {e.date()}（{days} 天）\n"
+        
+        if nocharge_ranges:
+            body += f"\n🚫 暫停計費區間：\n"
+            for s, e in nocharge_ranges:
                 days = (e - s).days
                 body += f"- {s.date()} ~ {e.date()}（{days} 天）\n"
 
@@ -64,16 +64,16 @@ class PDFReport(FPDF):
         body += f"📅 原請款週期：{bill_start} → {next_billing_date}\n\n"
         body += f"🔴 總共掉排名的天數：{total_downdays} 天\n\n"
 
-        if nocharge_ranges:
-            body += f"🚫 暫停收費區間：\n\n"
-            for s, e in nocharge_ranges:
+       if charge_ranges:
+            body += f"✅ 有收費區間：\n\n"
+            for s, e in charge_ranges:
                 days = (e - s).days
                 body += f"{s.date()} ~ {e.date()}（{days} 天）\n"
             body += "\n"
-
-        if charge_ranges:
-            body += f"✅ 有收費區間：\n\n"
-            for s, e in charge_ranges:
+        
+        if nocharge_ranges:
+            body += f"🚫 暫停收費區間：\n\n"
+            for s, e in nocharge_ranges:
                 days = (e - s).days
                 body += f"{s.date()} ~ {e.date()}（{days} 天）\n"
             body += "\n"
@@ -175,7 +175,7 @@ def main():
 
         st.subheader("⬇️ 掉出第一頁的日期區間")
         periods = []
-        num_periods = st.number_input("輸入掉排名的區間數量：", min_value=1, step=1, key="contract")
+        num_periods = st.number_input("輸入掉排名的區間組數：", min_value=1, step=1, key="contract")
 
         for i in range(int(num_periods)):
             with st.container():
@@ -200,13 +200,14 @@ def main():
                 st.write(f"📆 原合約到期日：{original_expiry.date()}")
                 st.write(f"🔴 掉排名總天數：{total_downdays} 天")
 
-                if nocharge_ranges:
-                    st.write("🚫 暫停計費區間：")
-                    for s, e in nocharge_ranges:
-                        st.write(f"- {s.date()} ~ {e.date()}（{(e - s).days} 天）")
                 if charge_ranges:
                     st.write("✅ 有計費區間：")
                     for s, e in charge_ranges:
+                        st.write(f"- {s.date()} ~ {e.date()}（{(e - s).days} 天）")
+                
+                if nocharge_ranges:
+                    st.write("🚫 暫停計費區間：")
+                    for s, e in nocharge_ranges:
                         st.write(f"- {s.date()} ~ {e.date()}（{(e - s).days} 天）")
 
                 st.write(f"🟡 延後後的新合約到期日：{adjusted_expiry.date()}")
