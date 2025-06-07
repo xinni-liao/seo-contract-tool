@@ -7,20 +7,21 @@ st.set_page_config(page_title="SEO 合約工具", layout="centered", initial_sid
 
 class PDFReport(FPDF):
     def header(self):
-        self.set_font("Arial", "B", 12)
+        self.add_font("TW", "", "NotoSansTC-Regular.ttf", uni=True)
+        self.set_font("TW", size=14)
         self.cell(0, 10, "SEO 合約計算報告", 0, 1, "C")
 
     def chapter_title(self, title):
-        self.set_font("Arial", "B", 12)
+        self.set_font("TW", size=12)
         self.cell(0, 10, title, 0, 1)
 
     def chapter_body(self, text):
-        self.set_font("Arial", "", 12)
+        self.set_font("TW", size=12)
         self.multi_cell(0, 10, text)
 
     def add_report(self, contract_start, original_expiry, total_downdays, adjusted_expiry):
         self.add_page()
-        self.chapter_title("計算結果")
+        self.chapter_title("報告內容")
         body = (
             f"原合約起始日：{contract_start}\n"
             f"原合約到期日：{original_expiry}\n"
@@ -85,6 +86,7 @@ def main():
             st.write(f"🟡 延後後的新合約到期日：{adjusted_expiry.date()}")
 
             pdf = PDFReport()
+            # 請確認你有將字型檔 NotoSansTC-Regular.ttf 上傳至你的 GitHub repo 中
             pdf.add_report(contract_start_dt.date(), original_expiry.date(), total_downdays, adjusted_expiry.date())
             output_path = "seo_contract_report.pdf"
             pdf.output(output_path)
