@@ -82,4 +82,66 @@ def calculate_overlap_days_and_ranges(periods, billing_range_start, billing_rang
 
     return total, charge_ranges, nocharge_ranges
 
-# main() 函數及其他部分保持不變
+def main():
+    st.title("📈 SEO 合約掉排名與請款日調整工具")
+
+    st.write("這是一個行動裝置友善的工具，可計算合約到期日與順延請款日，並可匯出 PDF 報告。")
+
+    option = st.radio("請選擇您要使用的計算功能：", ["📅 合約延展計算", "💰 請款順延計算"])
+
+    if option == "💰 請款順延計算":
+        client_name = st.text_input("👤 客戶名稱")
+        billing_start = st.date_input("💰 請款起始日（即首次繳費日）")
+        billing_cycle = st.selectbox("📦 繳費週期：", [1, 3], format_func=lambda x: f"每 {x} 個月繳一次")
+
+        st.subheader("⬇️ 掉出第一頁的日期區間")
+        periods = []
+        num_periods = st.number_input("輸入掉排名的區間數量：", min_value=1, step=1)
+
+        for i in range(int(num_periods)):
+            with st.container():
+                st.markdown(f"**第 {i+1} 段區間**")
+                start_date = st.date_input(f"開始日期", key=f"start_{i}")
+                end_date = st.date_input(f"結束日期", key=f"end_{i}")
+                if end_date >= start_date:
+                    periods.append((datetime.combine(start_date, datetime.min.time()),
+                                    datetime.combine(end_date, datetime.min.time())))
+                else:
+                    st.error(f"⚠️ 第 {i+1} 段結束日不能早於開始日")
+
+        if st.button("💰 計算請款日順延"):
+            if billing_start and periods:
+                billing_start_dt = datetime.combine(billing_start, datetime.min.time())
+                next_billing_date = billing_start_dt + timedelta(days=30 * billing_cycle)
+
+                delay_days, charge_ranges, nocharge_ranges = calculate_overlap_days_and_ranges(periods, billing_start_dt, next_billing_date)
+                adjusted_billing_date = next_billing_date + timedelta(days=delay_days)
+
+                st.success("✅ 計算結果如下：")
+                st.write(f"📅 原請款週期：{billing_start_dt.date()} → {next_billing_date.date()}")
+                st.write(f"🔴 掉排名影響天數（在收費期間內）：{delay_days} 天")
+                st.write(f"🟡 順延後的新請款日：{adjusted_billing_date.date()}")
+
+                if charge_ranges:
+                    st.write("✅ 有收費區間：")
+                    for s, e in charge_ranges:
+                        st.write(f"- {s.date()} ~ {e.date()}（{(e - s).days} 天）")
+                if nocharge_ranges:
+                    st.write("🚫 暫停收費區間：")
+                    for s, e in nocharge_ranges:
+                        st.write(f"- {s.date()} ~ {e.date()}（{(e - s).days} 天）")
+
+                pdf = PDFReport()
+                pdf.add_billing_report(client_name, billing_start_dt.date(), billing_cycle, next_billing_date.date(), delay_days, adjusted_billing_date.date(), charge_ranges, nocharge_ranges)
+
+                month_label = f"{adjusted_billing_date.year}{adjusted_billing_date.month:02d}"
+                safe_client = client_name.replace(" ", "_").replace("/", "_")
+                filename = f"{safe_client}_請款報告_{month_label}.pdf"
+
+                pdf.output(filename)
+                with open(filename, "rb") as f:
+                    st.download_button("⬇️ 下載 PDF 報告", f, file_name=filename)
+                os.remove(filename)
+
+if __name__ == "__main__":
+    main()
