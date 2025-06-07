@@ -49,8 +49,14 @@ class PDFReport(FPDF):
         )
         self.chapter_body(body)
 
-def calculate_downtime_days(periods):
-    return sum((end - start).days + 1 for start, end in periods)
+def calculate_overlap_days(periods, billing_range_start, billing_range_end):
+    total = 0
+    for start, end in periods:
+        overlap_start = max(start, billing_range_start)
+        overlap_end = min(end, billing_range_end)
+        if overlap_start <= overlap_end:
+            total += (overlap_end - overlap_start).days + 1
+    return total
 
 def main():
     st.title("📈 SEO 合約掉排名與請款日調整工具")
@@ -88,7 +94,7 @@ def main():
 
         if st.button("📅 計算合約到期日"):
             if contract_start and periods:
-                total_downdays = calculate_downtime_days(periods)
+                total_downdays = sum((end - start).days + 1 for start, end in periods)
                 contract_start_dt = datetime.combine(contract_start, datetime.min.time())
                 original_expiry = contract_start_dt + timedelta(days=365)
                 adjusted_expiry = original_expiry + timedelta(days=total_downdays)
@@ -101,11 +107,15 @@ def main():
 
                 pdf = PDFReport()
                 pdf.add_report(client_name, contract_start_dt.date(), original_expiry.date(), total_downdays, adjusted_expiry.date())
-                output_path = "seo_contract_report.pdf"
-                pdf.output(output_path)
-                with open(output_path, "rb") as f:
-                    st.download_button("⬇️ 下載 PDF 報告", f, file_name=output_path)
-                os.remove(output_path)
+
+                month_label = f"{adjusted_expiry.year}{adjusted_expiry.month:02d}"
+                safe_client = client_name.replace(" ", "_").replace("/", "_")
+                filename = f"{safe_client}_合約延展報告_{month_label}.pdf"
+
+                pdf.output(filename)
+                with open(filename, "rb") as f:
+                    st.download_button("⬇️ 下載 PDF 報告", f, file_name=filename)
+                os.remove(filename)
 
     elif option == "💰 請款順延計算":
         client_name = st.text_input("👤 客戶名稱")
@@ -129,23 +139,28 @@ def main():
 
         if st.button("💰 計算請款日順延"):
             if billing_start and periods:
-                total_downdays = calculate_downtime_days(periods)
                 billing_start_dt = datetime.combine(billing_start, datetime.min.time())
                 next_billing_date = billing_start_dt + timedelta(days=30 * billing_cycle)
-                adjusted_billing_date = next_billing_date + timedelta(days=total_downdays)
+
+                delay_days = calculate_overlap_days(periods, billing_start_dt, next_billing_date)
+                adjusted_billing_date = next_billing_date + timedelta(days=delay_days)
 
                 st.success("✅ 計算結果如下：")
                 st.write(f"📅 原請款週期：{billing_start_dt.date()} → {next_billing_date.date()}")
-                st.write(f"🔴 掉排名天數：{total_downdays} 天")
-                st.write(f"🟡 延後後的下一次請款日：{adjusted_billing_date.date()}")
+                st.write(f"🔴 掉排名影響天數（在收費期間內）：{delay_days} 天")
+                st.write(f"🟡 順延後的新請款日：{adjusted_billing_date.date()}")
 
                 pdf = PDFReport()
-                pdf.add_billing_report(client_name, billing_start_dt.date(), billing_cycle, next_billing_date.date(), total_downdays, adjusted_billing_date.date())
-                output_path = "seo_billing_report.pdf"
-                pdf.output(output_path)
-                with open(output_path, "rb") as f:
-                    st.download_button("⬇️ 下載 PDF 報告", f, file_name=output_path)
-                os.remove(output_path)
+                pdf.add_billing_report(client_name, billing_start_dt.date(), billing_cycle, next_billing_date.date(), delay_days, adjusted_billing_date.date())
+
+                month_label = f"{adjusted_billing_date.year}{adjusted_billing_date.month:02d}"
+                safe_client = client_name.replace(" ", "_").replace("/", "_")
+                filename = f"{safe_client}_請款報告_{month_label}.pdf"
+
+                pdf.output(filename)
+                with open(filename, "rb") as f:
+                    st.download_button("⬇️ 下載 PDF 報告", f, file_name=filename)
+                os.remove(filename)
 
 if __name__ == "__main__":
     main()
