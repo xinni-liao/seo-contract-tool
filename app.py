@@ -5,12 +5,38 @@ import os
 
 st.set_page_config(page_title="SEO 合約工具", layout="centered", initial_sidebar_state="collapsed")
 
+def parse_date(date_str):
+    return datetime.strptime(date_str, "%Y-%m-%d")
+
 def format_date_zh(date_obj):
     return f"{date_obj.year}年{date_obj.month}月{date_obj.day}日"
 
-def format_range_zh(start, end):
-    delta_days = (end - start).days
-    return f"{format_date_zh(start)} ～ {format_date_zh(end)}（{delta_days} 天）"
+def calculate_effective_days(start, end, exclusion_ranges):
+    current = start
+    charge_ranges = []
+    nocharge_ranges = []
+    while current < end:
+        in_exclusion = False
+        for exc_start, exc_end in exclusion_ranges:
+            if exc_start <= current < exc_end:
+                in_exclusion = True
+                break
+        next_day = current + timedelta(days=1)
+        if in_exclusion:
+            if not nocharge_ranges or nocharge_ranges[-1][1] != current:
+                nocharge_ranges.append([current, next_day])
+            else:
+                nocharge_ranges[-1][1] = next_day
+        else:
+            if not charge_ranges or charge_ranges[-1][1] != current:
+                charge_ranges.append([current, next_day])
+            else:
+                charge_ranges[-1][1] = next_day
+        current = next_day
+    charge_ranges = [(s, e) for s, e in charge_ranges]
+    nocharge_ranges = [(s, e) for s, e in nocharge_ranges]
+    total_excluded = sum((e - s).days for s, e in nocharge_ranges)
+    return charge_ranges, nocharge_ranges, total_excluded
 
 class PDFReport(FPDF):
     def __init__(self):
@@ -35,12 +61,12 @@ class PDFReport(FPDF):
         self.multi_cell(0, 8, text)
         self.ln()
 
-    def add_billing_report(self, client_name, bill_start, billing_cycle_months, next_billing_date, total_downdays, adjusted_billing_date, charge_ranges, nocharge_ranges):
+    def add_billing_report(self, client_name, bill_start, bill_end, total_downdays, adjusted_billing_date, charge_ranges, nocharge_ranges):
         self.add_page()
-        self.chapter_title(f"📄 客戶名稱：{client_name}")
+        self.chapter_title(f"客戶名稱：{client_name}")
 
         body = ""
-        body += f"1. 原請款週期：{bill_start} → {next_billing_date}\n\n"
+        body += f"1. 原請款週期：{bill_start.strftime('%Y-%m-%d')} → {bill_end.strftime('%Y-%m-%d')}\n\n"
         body += f"2. 總共掉排名的天數：{total_downdays} 天\n\n"
 
         if nocharge_ranges:
@@ -57,40 +83,45 @@ class PDFReport(FPDF):
                 body += f"   - {s.strftime('%Y-%m-%d')} ~ {e.strftime('%Y-%m-%d')}（{days} 天）\n"
             body += "\n"
 
-        body += f"5. 因此，順延後的新請款日：{adjusted_billing_date}"
+        body += f"5. 因此，順延後的新請款日：{adjusted_billing_date.strftime('%Y-%m-%d')}"
 
         self.chapter_body(body)
 
-# ⚙️ 示範資料（可替換為表單輸入）
-if __name__ == '__main__':
-    client_name = "慶昌珠寶"
-    bill_start = "2025-02-13"
-    billing_cycle_months = 3
-    next_billing_date = "2025-05-14"
-    total_downdays = 46
-    adjusted_billing_date = "2025-06-29"
+st.title("SEO 延後請款計算工具")
 
-    charge_ranges = [
-        (datetime(2025, 2, 13), datetime(2025, 2, 18)),
-        (datetime(2025, 4, 5), datetime(2025, 5, 14)),
-    ]
+with st.form("form"):
+    client_name = st.text_input("客戶名稱", "慶昌珠寶")
+    bill_start = st.date_input("原請款開始日", datetime(2025, 2, 13))
+    bill_end = st.date_input("原請款結束日", datetime(2025, 5, 14))
+    st.write("請輸入掉排名日期區間（可輸入多筆）：")
+    drop_ranges = []
+    for i in range(3):
+        col1, col2 = st.columns(2)
+        with col1:
+            start = st.date_input(f"掉排名開始日 {i+1}", key=f"start{i}")
+        with col2:
+            end = st.date_input(f"掉排名結束日 {i+1}", key=f"end{i}")
+        if start and end and start < end:
+            drop_ranges.append((start, end))
+    submitted = st.form_submit_button("產生報告")
 
-    nocharge_ranges = [
-        (datetime(2025, 2, 18), datetime(2025, 4, 5)),
-    ]
+if submitted:
+    charge_ranges, nocharge_ranges, total_downdays = calculate_effective_days(bill_start, bill_end, drop_ranges)
+    adjusted_date = bill_end + timedelta(days=total_downdays)
 
     pdf = PDFReport()
     pdf.add_billing_report(
         client_name,
         bill_start,
-        billing_cycle_months,
-        next_billing_date,
+        bill_end,
         total_downdays,
-        adjusted_billing_date,
+        adjusted_date,
         charge_ranges,
         nocharge_ranges,
     )
 
-    filename = f"{client_name}_請款報告_{adjusted_billing_date}.pdf"
+    filename = f"{client_name}_請款報告_{adjusted_date.strftime('%Y-%m-%d')}.pdf"
     pdf.output(filename)
-    st.success(f"已產生報告：{filename}")
+    with open(filename, "rb") as f:
+        st.download_button("下載 PDF 報告", f, file_name=filename, mime="application/pdf")
+    st.success("PDF 報告已產出！")
