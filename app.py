@@ -82,17 +82,17 @@ class PDFReport(FPDF):
 
         self.chapter_body(body)
 
-def calculate_overlap_days_and_ranges(periods, billing_range_start, billing_range_end):
+def calculate_overlap_days_and_ranges(periods, range_start, range_end):
     total = 0
     charge_ranges = []
     nocharge_ranges = []
 
-    cursor = billing_range_start
+    cursor = range_start
     sorted_periods = sorted(periods, key=lambda x: x[0])
 
     for start, end in sorted_periods:
-        overlap_start = max(start, billing_range_start)
-        overlap_end = min(end, billing_range_end)
+        overlap_start = max(start, range_start)
+        overlap_end = min(end, range_end)
 
         if overlap_start < overlap_end:
             if cursor < overlap_start:
@@ -101,8 +101,8 @@ def calculate_overlap_days_and_ranges(periods, billing_range_start, billing_rang
             total += (overlap_end - overlap_start).days
             cursor = overlap_end
 
-    if cursor < billing_range_end:
-        charge_ranges.append((cursor, billing_range_end))
+    if cursor < range_end:
+        charge_ranges.append((cursor, range_end))
 
     return total, charge_ranges, nocharge_ranges
 
@@ -171,6 +171,7 @@ def main():
     if option == "📅 合約延展計算":
         client_name = st.text_input("👤 客戶名稱", key="contract_client")
         contract_start = st.date_input("📅 合約起始日", key="contract_start")
+        contract_years = st.selectbox("📆 合約年限：", [1, 2, 3], format_func=lambda x: f"{x} 年")
 
         st.subheader("⬇️ 掉出第一頁的日期區間")
         periods = []
@@ -190,7 +191,7 @@ def main():
         if st.button("📅 計算合約到期日"):
             if contract_start and periods:
                 contract_start_dt = datetime.combine(contract_start, datetime.min.time())
-                original_expiry = contract_start_dt + timedelta(days=365)
+                original_expiry = contract_start_dt + timedelta(days=365 * contract_years)
                 total_downdays, charge_ranges, nocharge_ranges = calculate_overlap_days_and_ranges(periods, contract_start_dt, original_expiry)
                 adjusted_expiry = original_expiry + timedelta(days=total_downdays)
 
