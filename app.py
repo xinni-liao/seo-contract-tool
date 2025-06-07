@@ -53,13 +53,15 @@ class PDFReport(FPDF):
         if nocharge_ranges:
             body += f"🚫 暫停收費區間：\n\n"
             for s, e in nocharge_ranges:
-                body += f"{s.date()} ~ {e.date()}（{(e - s).days} 天）\n"
+                days = (e - s).days
+                body += f"{s.date()} ~ {e.date()}（{days} 天）\n"
             body += "\n"
 
         if charge_ranges:
             body += f"✅ 有收費區間：\n\n"
             for s, e in charge_ranges:
-                body += f"{s.date()} ~ {e.date()}（{(e - s).days} 天）\n"
+                days = (e - s).days
+                body += f"{s.date()} ~ {e.date()}（{days} 天）\n"
             body += "\n"
 
         body += f"🟡 因此，順延後的新請款日：{adjusted_billing_date}\n"
