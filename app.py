@@ -172,7 +172,6 @@ def main():
                 adjusted_billing_date = next_billing_date + timedelta(days=delay_days)
 
                 st.success("✅ 計算結果如下：")
-                st.write(f"🔴 掉排名總共天數（在收費期間內）：{delay_days} 天")
 
                 if charge_ranges:
                     st.write("✅ 有收費區間：")
@@ -184,6 +183,7 @@ def main():
                         st.write(f"- {s.date()} ~ {e.date()}（{(e - s).days} 天）")
                         
                 st.write(f"📅 原請款週期：{billing_start_dt.date()} → {next_billing_date.date()}")
+                st.write(f"🔴 掉排名總共天數（在收費期間內）：{delay_days} 天")
                 st.write(f"🟡 順延後的新請款日：{adjusted_billing_date.date()}")
 
                 
