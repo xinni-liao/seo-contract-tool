@@ -64,7 +64,7 @@ class PDFReport(FPDF):
         body += f"📅 原請款週期：{bill_start} → {next_billing_date}\n\n"
         body += f"🔴 總共掉排名的天數：{total_downdays} 天\n\n"
 
-       if charge_ranges:
+        if charge_ranges:
             body += f"✅ 有收費區間：\n\n"
             for s, e in charge_ranges:
                 days = (e - s).days
